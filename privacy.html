@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Политика конфиденциальности — Расширение «Честная цена»</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: #0f172a;
+      background: #f8fafc;
+      margin: 0;
+      padding: 32px 16px;
+    }
+    .card {
+      max-width: 780px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+      color: #0f172a;
+    }
+    h2 {
+      font-size: 18px;
+      margin-top: 24px;
+      color: #0f766e;
+    }
+    p, li {
+      color: #334155;
+      font-size: 15px;
+    }
+    .muted {
+      font-size: 13px;
+      color: #64748b;
+    }
+    .box {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Политика конфиденциальности (Privacy Policy)</h1>
+    <p class="muted">Браузерное расширение «Честная цена» • Последнее обновление: 2026</p>
+
+    <div class="box">
+      <strong>Кратко:</strong> расширение работает локально в вашем браузере и <strong>не собирает</strong> персональные данные, историю просмотров, поисковые запросы, куки или данные аккаунта.
+    </div>
+
+    <h2>1. Какие данные обрабатываются</h2>
+    <ul>
+      <li>Расширение считывает текст и цену карточек товаров исключительно локально в браузере на страницах совместимого домена <code>ozon.ru</code> для расчёта приведённой стоимости (за кг, л, м, м², шт.).</li>
+      <li>Все настройки (состояние переключателя Вкл/Выкл и кэш справочников) хранятся только локально в вашем браузере через <code>chrome.storage.local</code>.</li>
+      <li>Расширение <strong>не</strong> собирает, не хранит на серверах и не передаёт третьим лицам персональные данные, логины, пароли, токены авторизации, историю поиска или содержимое корзины.</li>
+    </ul>
+
+    <h2>2. Сетевые запросы</h2>
+    <p>
+      Для поддержания актуальности словарей фасовки и CSS-селекторов расширение не чаще одного раза в 24 часа выполняет анонимный HTTP GET-запрос за статическим файлом конфигурации <code>config.json</code> с резервных зеркал GitHub Pages и Netlify.
+    </p>
+    <p>
+      В этих запросах не передаются никакие идентификаторы пользователя, куки, история посещений или URL просматриваемых страниц. Стандартные технические HTTP-логи доступа (IP-адрес запроса) обрабатываются инфраструктурой хостинг-провайдеров GitHub Pages и Netlify в соответствии с их политиками безопасности.
+    </p>
+
+    <h2>3. Отказ от ответственности (Дисклеймер)</h2>
+    <p>
+      Расширение является независимым пользовательским инструментом и никак не связано с владельцами и администрацией поддерживаемых веб-сайтов. Все расчёты носят исключительно справочный информационный характер и основаны на текстовом описании карточек товаров. Перед оформлением заказа всегда проверяйте итоговую цену, вес, объём и количество товара непосредственно на странице продавца.
+    </p>
+
+    <h2>4. Контакты</h2>
+    <p>
+      По вопросам работы расширения и конфиденциальности: <a href="mailto:toolsfairprice@gmail.com">toolsfairprice@gmail.com</a>.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 28px 0;">
+
+    <h2>Privacy Policy Summary (English)</h2>
+    <p>
+      This browser extension is an independent client-side price-per-unit calculator for pages matching <code>ozon.ru</code>. It processes product text locally in your browser and stores preferences only in <code>chrome.storage.local</code>. It does <strong>not</strong> collect, track, sell, or transmit personal data, browsing history, cookies, or account credentials. Once every 24 hours, the extension performs an anonymous GET request to fetch a static read-only <code>config.json</code> (category keywords and CSS selectors) from GitHub Pages / Netlify mirrors without sending any user identifiers. Contact: <a href="mailto:toolsfairprice@gmail.com">toolsfairprice@gmail.com</a>.
+    </p>
+  </div>
+</body>
+</html>
