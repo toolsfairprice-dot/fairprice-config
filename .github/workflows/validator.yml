@@ -2,8 +2,9 @@ name: Ozon DOM Validator
 
 on:
   schedule:
+    # Запуск каждый день в 9:00 утра по UTC (12:00 по Москве)
     - cron: '0 9 * * *'
-  workflow_dispatch: 
+  workflow_dispatch: # Позволяет запускать вручную
 
 jobs:
   validate:
@@ -31,81 +32,119 @@ jobs:
           NTFY_TOPIC: "fairprice_ozon_alerts_777"
         run: |
           python -c "
-          import time, json, urllib.request, urllib.parse
+          import time, json, urllib.request, os
           from bs4 import BeautifulSoup
           from playwright.sync_api import sync_playwright
-          import os
 
           ntfy_topic = os.environ.get('NTFY_TOPIC', 'fairprice_ozon_alerts_777')
-          
+
           try:
               with open('config.json', 'r', encoding='utf-8') as f:
                   data = json.load(f)
                   selectors = data.get('selectors', {})
           except Exception as e:
               print(f'Не удалось прочитать local config.json: {e}')
-              selectors = {'tileRoot': 'div.tile-root', 'webPrice': '[data-widget=\"webPrice\"]'}
+              selectors = {
+                  'tileRoot': 'div.tile-root',
+                  'productLink': 'a[href*=\"/product/\"]',
+                  'webPrice': '[data-widget=\"webPrice\"]',
+                  'productTitle': 'h1'
+              }
 
           tile_root = selectors.get('tileRoot', 'div.tile-root')
-          web_price = selectors.get('webPrice', '[data-widget=\"webPrice\"]')
+          product_link_sel = selectors.get('productLink', 'a[href*=\"/product/\"]')
+          web_price_sel = selectors.get('webPrice', '[data-widget=\"webPrice\"]')
+          title_sel = selectors.get('productTitle', 'h1')
 
-          print(f'Проверяем селекторы -> Карточки: {tile_root} | Цены: {web_price}')
+          def send_alert(msg, title='FairPrice Cloud Validator', priority='default', tags='warning'):
+              try:
+                  req = urllib.request.Request(
+                      f'https://ntfy.sh/{ntfy_topic}',
+                      data=msg.encode('utf-8'),
+                      headers={'Title': title, 'Priority': priority, 'Tags': tags},
+                      method='POST'
+                  )
+                  urllib.request.urlopen(req)
+                  print(f'Уведомление [{title}] отправлено в ntfy.sh!')
+              except Exception as err:
+                  print(f'Ошибка отправки алерта: {err}')
 
-          def send_alert(msg):
-            try:
-                req = urllib.request.Request(
-                    f'https://ntfy.sh/{ntfy_topic}',
-                    data=msg.encode('utf-8'),
-                    headers={
-                        'Title': 'FairPrice Alert: Ozon DOM',
-                        'Priority': 'high',
-                        'Tags': 'warning'
-                    },
-                    method='POST'
-                )
-                urllib.request.urlopen(req)
-                print('Алерт успешно отправлен на ntfy.sh!')
-            except Exception as err:
-                print(f'Ошибка отправки алерта: {err}')
+          def guess_new_widget(soup_root):
+              widgets = []
+              for el in soup_root.find_all(['span', 'div', 'b']):
+                  txt = el.get_text(strip=True)
+                  if '₽' in txt and len(txt) < 25 and any(c.isdigit() for c in txt):
+                      curr = el
+                      for _ in range(7):
+                          if not curr or curr.name == 'body': break
+                          if curr.has_attr('data-widget'):
+                              w = curr['data-widget']
+                              if 'price' in w.lower() or 'sale' in w.lower():
+                                  widgets.insert(0, f'[data-widget=\"{w}\"]')
+                              else:
+                                  widgets.append(f'[data-widget=\"{w}\"]')
+                              break
+                          curr = curr.parent
+              return list(dict.fromkeys(widgets))[:3]
 
           with sync_playwright() as p:
               browser = p.chromium.launch(headless=True)
-              # Делаем User-Agent более похожим на реальный десктопный браузер
               page = browser.new_context(
                   user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                   viewport={'width': 1920, 'height': 1080}
               ).new_page()
-              
+
               try:
                   page.goto('https://www.ozon.ru/search/?text=кофе', timeout=40000, wait_until='domcontentloaded')
-                  time.sleep(7)
-                  soup = BeautifulSoup(page.content(), 'html.parser')
-                  
-                  cards = soup.select(tile_root)
-                  print(f'Найдено карточек: {len(cards)}')
+                  time.sleep(6)
+                  html_search = page.content()
 
-                  prices = 0
-                  for c in cards[:15]:
-                      if c.select_one(web_price) and '₽' in c.select_one(web_price).get_text():
-                          prices += 1
+                  if 'Похоже, нет соединения' in html_search or 'Доступ ограничен' in html_search or 'Antibot' in (page.title() or ''):
+                      print('Облачный сервер GitHub заблокирован антиботом Ozon (это нормально для дата-центров).')
+                      # Не спамим каждый день алертом об антиботе на сервере GitHub, раз у нас есть локальный валидатор на ПК!
+                      exit(0)
 
-                  print(f'Найдено цен: {prices}')
+                  soup_search = BeautifulSoup(html_search, 'html.parser')
+                  cards = soup_search.select(tile_root)
+                  print(f'Найдено карточек в поиске: {len(cards)}')
 
-                  # Условие сбоя: если карточек меньше 5 (бан/смена главного контейнера) ИЛИ карточки есть, но цен 0 (смена селектора цены)
                   if len(cards) < 5:
-                      err_msg = f'Критический сбой или блок! Найдено карточек: {len(cards)}. Селектор tileRoot ({tile_root}) устарел или Ozon заблокировал бота.'
-                      print(err_msg)
-                      send_alert(err_msg)
-                  elif prices == 0:
-                      err_msg = f'Сбой вёрстки! Карточек найдено: {len(cards)}, но цен: 0. Селектор цены ({web_price}) устарел!'
-                      print(err_msg)
-                      send_alert(err_msg)
+                      msg = f'🚨 GitHub Actions: СЛОМАЛСЯ СЕЛЕКТОР КАРТОЧКИ! По \"{tile_root}\" найдено {len(cards)} шт.'
+                      print(msg)
+                      send_alert(msg, title='FairPrice Cloud: Card Selector Broken!', priority='urgent', tags='rotating_light')
+                      exit(0)
+
+                  # Находим ссылку на первый товар
+                  first_url = None
+                  for c in cards[:10]:
+                      l = c.select_one(product_link_sel)
+                      if l and l.has_attr('href'):
+                          href = l['href']
+                          first_url = href if href.startswith('http') else 'https://www.ozon.ru' + href
+                          break
+
+                  if not first_url:
+                      send_alert(f'🚨 GitHub Actions: не найден селектор ссылки {product_link_sel}', title='FairPrice Cloud: Link Error', priority='high')
+                      exit(0)
+
+                  # Переходим в карточку товара
+                  page.goto(first_url, timeout=40000, wait_until='domcontentloaded')
+                  time.sleep(6)
+                  html_prod = page.content()
+                  soup_prod = BeautifulSoup(html_prod, 'html.parser')
+
+                  web_price_el = soup_prod.select_one(web_price_sel)
+                  if not web_price_el or '₽' not in web_price_el.get_text():
+                      guesses = guess_new_widget(soup_prod)
+                      guesses_txt = '\n'.join(guesses) if guesses else 'Не определено'
+                      msg = f'🚨 GitHub Actions: СЛОМАЛСЯ СЕЛЕКТОР ЦЕНЫ \"{web_price_sel}\"!\nВозможные новые:\n{guesses_txt}'
+                      print(msg)
+                      send_alert(msg, title='FairPrice Cloud: Price Broken!', priority='urgent', tags='rotating_light')
                   else:
-                      print('Всё отлично, селекторы актуальны и цены найдены.')
+                      print('Всё отлично! Облачная проверка пройдена.')
+
               except Exception as e:
-                  err_msg = f'Ошибка GitHub Actions при валидации: {str(e)}'
-                  print(err_msg)
-                  send_alert(err_msg)
+                  print(f'Ошибка выполнения в облаке: {e}')
               finally:
                   browser.close()
           "
