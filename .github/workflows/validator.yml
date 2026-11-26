@@ -2,9 +2,9 @@ name: Ozon DOM Validator
 
 on:
   schedule:
-    # Запуск каждый день в 9:00 утра по UTC (12:00 по Москве)
-    - cron: '0 9 * * *'
-  workflow_dispatch: # Позволяет запускать вручную
+    # Запуск 2 раза в сутки: в 08:17 и 20:17 по Москве (05:17 и 17:17 по UTC)
+    - cron: '17 5,17 * * *'
+  workflow_dispatch: # Позволяет запускать проверку вручную кнопкой на сайте GitHub
 
 jobs:
   validate:
@@ -56,7 +56,7 @@ jobs:
           web_price_sel = selectors.get('webPrice', '[data-widget=\"webPrice\"]')
           title_sel = selectors.get('productTitle', 'h1')
 
-          def send_alert(msg, title='FairPrice Cloud Validator', priority='default', tags='warning'):
+          def send_alert(msg, title='FairPrice Cloud Validator', priority='high', tags='rotating_light'):
               try:
                   req = urllib.request.Request(
                       f'https://ntfy.sh/{ntfy_topic}',
@@ -87,6 +87,20 @@ jobs:
                           curr = curr.parent
               return list(dict.fromkeys(widgets))[:3]
 
+          def guess_new_card(soup_root):
+              cards = []
+              for link in soup_root.select('a[href*=\"/product/\"]')[:5]:
+                  parent = link.parent
+                  for _ in range(5):
+                      if not parent or parent.name == 'body': break
+                      if '₽' in parent.get_text() and parent.find('img') and parent.has_attr('class'):
+                          cls = '.'.join(parent['class'])
+                          if cls:
+                              cards.append(f'{parent.name}.{cls}')
+                              break
+                      parent = parent.parent
+              return list(dict.fromkeys(cards))[:3]
+
           with sync_playwright() as p:
               browser = p.chromium.launch(headless=True)
               page = browser.new_context(
@@ -100,21 +114,21 @@ jobs:
                   html_search = page.content()
 
                   if 'Похоже, нет соединения' in html_search or 'Доступ ограничен' in html_search or 'Antibot' in (page.title() or ''):
-                      print('Облачный сервер GitHub заблокирован антиботом Ozon (это нормально для дата-центров).')
-                      # Не спамим каждый день алертом об антиботе на сервере GitHub, раз у нас есть локальный валидатор на ПК!
+                      print('[INFO] Облачный сервер GitHub заблокирован антиботом Ozon. Завершение без спама.')
                       exit(0)
 
                   soup_search = BeautifulSoup(html_search, 'html.parser')
                   cards = soup_search.select(tile_root)
-                  print(f'Найдено карточек в поиске: {len(cards)}')
+                  print(f'[INFO] Найдено карточек в поиске: {len(cards)}')
 
                   if len(cards) < 5:
-                      msg = f'🚨 GitHub Actions: СЛОМАЛСЯ СЕЛЕКТОР КАРТОЧКИ! По \"{tile_root}\" найдено {len(cards)} шт.'
+                      guesses = guess_new_card(soup_search)
+                      guesses_txt = '\n'.join(guesses) if guesses else 'Не определено'
+                      msg = f'🚨 GitHub Actions: СЛОМАЛСЯ СЕЛЕКТОР КАРТОЧКИ!\nПо \"{tile_root}\" найдено {len(cards)} шт.\nВозможные новые:\n{guesses_txt}'
                       print(msg)
-                      send_alert(msg, title='FairPrice Cloud: Card Selector Broken!', priority='urgent', tags='rotating_light')
+                      send_alert(msg, title='FairPrice Cloud: Card Selector Broken!', priority='urgent')
                       exit(0)
 
-                  # Находим ссылку на первый товар
                   first_url = None
                   for c in cards[:10]:
                       l = c.select_one(product_link_sel)
@@ -127,24 +141,30 @@ jobs:
                       send_alert(f'🚨 GitHub Actions: не найден селектор ссылки {product_link_sel}', title='FairPrice Cloud: Link Error', priority='high')
                       exit(0)
 
-                  # Переходим в карточку товара
                   page.goto(first_url, timeout=40000, wait_until='domcontentloaded')
                   time.sleep(6)
                   html_prod = page.content()
                   soup_prod = BeautifulSoup(html_prod, 'html.parser')
 
+                  h1_el = soup_prod.select_one(title_sel)
                   web_price_el = soup_prod.select_one(web_price_sel)
+
+                  if not h1_el or not h1_el.get_text(strip=True):
+                      send_alert(f'🚨 GitHub Actions: не найден заголовок товара ({title_sel})', title='FairPrice Cloud: Title Broken', priority='high')
+                      exit(0)
+
                   if not web_price_el or '₽' not in web_price_el.get_text():
                       guesses = guess_new_widget(soup_prod)
                       guesses_txt = '\n'.join(guesses) if guesses else 'Не определено'
                       msg = f'🚨 GitHub Actions: СЛОМАЛСЯ СЕЛЕКТОР ЦЕНЫ \"{web_price_sel}\"!\nВозможные новые:\n{guesses_txt}'
                       print(msg)
-                      send_alert(msg, title='FairPrice Cloud: Price Broken!', priority='urgent', tags='rotating_light')
+                      send_alert(msg, title='FairPrice Cloud: Price Broken!', priority='urgent')
                   else:
-                      print('Всё отлично! Облачная проверка пройдена.')
+                      # Всё в порядке — просто пишем в лог, пуш не шлём!
+                      print('[OK] Всё отлично! Поиск и карточка товара работают штатно. Уведомление не отправляется.')
 
               except Exception as e:
-                  print(f'Ошибка выполнения в облаке: {e}')
+                  print(f'[WARN] Ошибка выполнения в облаке: {e}')
               finally:
                   browser.close()
           "
