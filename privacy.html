@@ -69,10 +69,13 @@
 
     <h2>2. Сетевые запросы</h2>
     <p>
-      Для поддержания актуальности словарей фасовки и CSS-селекторов расширение не чаще одного раза в 24 часа выполняет анонимный HTTP GET-запрос за статическим файлом конфигурации <code>config.json</code> с резервных зеркал GitHub Pages и Netlify.
+      Для поддержания актуальности словарей фасовки и CSS-селекторов расширение не чаще одного раза в 24 часа выполняет анонимный HTTP GET-запрос за статическим файлом конфигурации <code>config.json</code> с резервных зеркал GitHub Pages и Netlify. Никакой исполняемый код при этом не загружается — только текстовые данные (правила и селекторы).
     </p>
     <p>
-      В этих запросах не передаются никакие идентификаторы пользователя, куки, история посещений или URL просматриваемых страниц. Стандартные технические HTTP-логи доступа (IP-адрес запроса) обрабатываются инфраструктурой хостинг-провайдеров GitHub Pages и Netlify в соответствии с их политиками безопасности.
+      <strong>Техническая диагностика:</strong> в случае критического сбоя распознавания структуры страницы (когда отображаются товары, но не удаётся прочитать ни одну цену), расширение может отправить полностью обезличенное техническое уведомление (без URL, поисковых запросов, куки или данных пользователя) для оперативного исправления правил отображения.
+    </p>
+    <p>
+      В указанных запросах не передаются никакие идентификаторы пользователя, история посещений или персональные данные. Стандартные технические HTTP-логи доступа обрабатываются инфраструктурой соответствующих хостинг-провайдеров и сервисов уведомлений в соответствии с их политиками безопасности.
     </p>
 
     <h2>3. Отказ от ответственности (Дисклеймер)</h2>
@@ -89,7 +92,7 @@
 
     <h2>Privacy Policy Summary (English)</h2>
     <p>
-      This browser extension is an independent client-side price-per-unit calculator for pages matching <code>ozon.ru</code>. It processes product text locally in your browser and stores preferences only in <code>chrome.storage.local</code>. It does <strong>not</strong> collect, track, sell, or transmit personal data, browsing history, cookies, or account credentials. Once every 24 hours, the extension performs an anonymous GET request to fetch a static read-only <code>config.json</code> (category keywords and CSS selectors) from GitHub Pages / Netlify mirrors without sending any user identifiers. Contact: <a href="mailto:toolsfairprice@gmail.com">toolsfairprice@gmail.com</a>.
+      This browser extension is an independent client-side price-per-unit calculator for pages matching <code>ozon.ru</code>. It processes product text locally in your browser and stores preferences only in <code>chrome.storage.local</code>. It does <strong>not</strong> collect, track, sell, or transmit personal data, browsing history, cookies, or account credentials. Once every 24 hours, the extension performs an anonymous GET request to fetch a static read-only <code>config.json</code> (category keywords and CSS selectors; no executable code) from GitHub Pages / Netlify mirrors without sending any user identifiers. In case of a critical DOM parsing failure (e.g., product cards are present, but zero prices can be extracted), the extension may send a completely anonymized technical alert (strictly without page URLs, search queries, or user data) solely to notify the developer of layout changes. Contact: <a href="mailto:toolsfairprice@gmail.com">toolsfairprice@gmail.com</a>.
     </p>
   </div>
 </body>
