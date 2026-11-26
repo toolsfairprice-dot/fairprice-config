@@ -5,7 +5,7 @@
     "tileRoot": "div.tile-root",
     "productLink": "a[href*=\"/product/\"]",
     "cardTitleCandidates": "a[href*=\"/product/\"] span, a[href*=\"/product/\"] div, span.tsBody500Medium",
-    "webPrice": "[data-widget=\"webPrice\"]",
+    "webPrice": "[data-widget=\"webPrice123\"]",
     "webAspects": "[data-widget=\"webAspects\"]",
     "selectedAspect": "[aria-pressed=\"true\"], [aria-checked=\"true\"], [aria-selected=\"true\"]",
     "productTitle": "h1"
