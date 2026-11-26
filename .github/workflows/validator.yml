@@ -52,13 +52,21 @@ jobs:
           print(f'Проверяем селекторы -> Карточки: {tile_root} | Цены: {web_price}')
 
           def send_alert(msg):
-              try:
-                  d = urllib.parse.urlencode({'message': msg, 'title': '⚠️ Сбой вёрстки Ozon', 'priority': 'high'}).encode('utf-8')
-                  req = urllib.request.Request(f'https://ntfy.sh/{ntfy_topic}', data=d, method='POST')
-                  urllib.request.urlopen(req)
-                  print('Алерт успешно отправлен на ntfy.sh!')
-              except Exception as err:
-                  print(f'Ошибка отправки алерта: {err}')
+            try:
+                req = urllib.request.Request(
+                    f'https://ntfy.sh/{ntfy_topic}',
+                    data=msg.encode('utf-8'),
+                    headers={
+                        'Title': 'FairPrice Alert: Ozon DOM',
+                        'Priority': 'high',
+                        'Tags': 'warning'
+                    },
+                    method='POST'
+                )
+                urllib.request.urlopen(req)
+                print('Алерт успешно отправлен на ntfy.sh!')
+            except Exception as err:
+                print(f'Ошибка отправки алерта: {err}')
 
           with sync_playwright() as p:
               browser = p.chromium.launch(headless=True)
