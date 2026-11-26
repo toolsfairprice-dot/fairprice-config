@@ -1,0 +1,95 @@
+name: Ozon DOM Validator
+
+on:
+  schedule:
+    # Запуск каждый день в 9:00 утра по UTC (можно изменить по вкусу)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Позволяет запускать проверку вручную кнопкой с сайта GitHub
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 playwright
+
+      - name: Install Playwright Browsers
+        run: playwright install chromium
+
+      - name: Run Validator Script
+        env:
+          NTFY_TOPIC: "fairprice_ozon_alerts_777"
+        run: |
+          python -c "
+          import time, json, urllib.request, urllib.parse
+          from bs4 import BeautifulSoup
+          from playwright.sync_api import sync_playwright
+          import os
+
+          ntfy_topic = os.environ.get('NTFY_TOPIC', 'fairprice_ozon_alerts_777')
+          
+          # Загружаем селекторы из нашего же config.json в репозитории
+          try:
+              with open('config.json', 'r', encoding='utf-8') as f:
+                  data = json.load(f)
+                  selectors = data.get('selectors', {})
+          except Exception as e:
+              print(f'Не удалось прочитать local config.json: {e}')
+              selectors = {'tileRoot': 'div.tile-root', 'webPrice': '[data-widget=\"webPrice\"]'}
+
+          tile_root = selectors.get('tileRoot', 'div.tile-root')
+          web_price = selectors.get('webPrice', '[data-widget=\"webPrice\"]')
+
+          print(f'Проверяем селекторы -> Карточки: {tile_root} | Цены: {web_price}')
+
+          def send_alert(msg):
+              try:
+                  d = urllib.parse.urlencode({'message': msg, 'title': '⚠️ Сбой вёрстки Ozon', 'priority': 'high'}).encode('utf-8')
+                  req = urllib.request.Request(f'https://ntfy.sh/{ntfy_topic}', data=d, method='POST')
+                  urllib.request.urlopen(req)
+                  print('Алерт успешно отправлен на ntfy.sh!')
+              except Exception as err:
+                  print(f'Ошибка отправки алерта: {err}')
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              page = browser.new_context(user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0').new_page()
+              try:
+                  page.goto('https://www.ozon.ru/search/?text=кофе', timeout=40000, wait_until='domcontentloaded')
+                  time.sleep(6)
+                  soup = BeautifulSoup(page.content(), 'html.parser')
+                  
+                  cards = soup.select(tile_root)
+                  print(f'Найдено карточек: {len(cards)}')
+
+                  prices = 0
+                  for c in cards[:15]:
+                      if c.select_one(web_price) and '₽' in c.select_one(web_price).get_text():
+                          prices += 1
+
+                  print(f'Найдено цен: {prices}')
+
+                  if len(cards) >= 10 and prices == 0:
+                      err_msg = f'Сбой! Карточек: {len(cards)}, цен: 0. Селектор цены ({web_price}) устарел!'
+                      print(err_msg)
+                      send_alert(err_msg)
+                  else:
+                      print('Всё отлично, селекторы актуальны.')
+              except Exception as e:
+                  err_msg = f'Ошибка GitHub Actions при валидации: {str(e)}'
+                  print(err_msg)
+                  send_alert(err_msg)
+              finally:
+                  browser.close()
+          "
