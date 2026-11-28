@@ -7,14 +7,15 @@
   "selectors": {
     "tileRoot": "div.tile-root",
     "productLink": "a[href*=\"/product/\"]",
-    "cardTitleCandidates": "a[href*=\"/product/\"] span, a[href*=\"/product/\"] div, span.tsBody500Medium",
+    "cardTitleCandidates": "a[href*=\"/product/\"] span.tsBody500Medium, a[href*=\"/product/\"] span, a[href*=\"/product/\"] div, span.tsBody500Medium",
+    "cardBrandCandidates": "span.tsBodyControl400Small",
     "webPrice": "[data-widget=\"webPrice\"]",
     "webAspects": "[data-widget=\"webAspects\"]",
-    "selectedAspect": "[aria-pressed=\"true\"], [aria-checked=\"true\"], [aria-selected=\"true\"]",
+    "selectedAspect": "[aria-pressed=\"true\"], [aria-checked=\"true\"], [aria-selected=\"true\"], .pdp_q7 > div",
     "productTitle": "h1",
     "webCharacteristics": "#section-characteristics, [data-widget=\"webCharacteristics\"], [data-widget=\"webShortCharacteristics\"]",
     "breadcrumbs": "[data-widget=\"breadCrumbs\"], ol[itemtype*=\"BreadcrumbList\"]",
-    "webBrand": "[data-widget=\"webBrand\"], a[href*=\"/brand/\"]"
+    "webBrand": "[data-widget=\"webBrand\"] a[href*=\"/brand/\"], [data-widget=\"webBrand\"], a[href*=\"/brand/\"]"
   },
   "excludedCategoryUrl": {
     "pattern": "\\/category\\/(?:[^/]*-)?(?:elektronika|smartfony|telefony|noutbuki|kompyutery|planshety|televizory|naushniki|foto-i-video|igry-i-pristavki|bytovaya-tehnika|klimaticheskaya-tehnika|kuhonnaya-tehnika|tehnika-dlya-kuhni|tehnika-dlya-doma|pylesosy|holodilniki|stiralnye-mashiny|kofemashiny|chayniki|odezhda|obuv|zhenskaya-odezhda|muzhskaya-odezhda|detskaya-odezhda|sumki|ryukzaki|chemodany|yuvelirnye-izdeliya|bizhuteriya|chasy|mebel|posuda|postelnoe-bele|shtory|osveshchenie|svetilniki|dekor|knigi|kantselyariya|igrushki|konstruktory|kolyaski|avtokresla|podguzniki|instrumenty|elektroinstrument|santehnika|shiny|diski|avtozapchasti|tovary-dlya-vzroslyh|eroticheskie-tovary|tsifrovye-tovary)(?:-|/|\\d|$)",
