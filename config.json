@@ -1,6 +1,9 @@
 {
   "version": "1.9.1",
   "updatedAt": "2025-05-15T12:00:00.000Z",
+  "features": {
+    "enableHoverFetch": false
+  },
   "selectors": {
     "tileRoot": "div.tile-root",
     "productLink": "a[href*=\"/product/\"]",
